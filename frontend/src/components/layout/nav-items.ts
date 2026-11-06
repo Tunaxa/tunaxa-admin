@@ -4,6 +4,7 @@ import {
   Boxes,
   CalendarDays,
   CircleDollarSign,
+  Clock,
   Crown,
   FileText,
   LayoutDashboard,
@@ -40,6 +41,14 @@ export const NAV_ITEMS: NavItem[] = [
     href: '/',
     group: 'overview',
     permission: 'work:read',
+  },
+  {
+    key: 'timeclock',
+    label: 'Pointage',
+    icon: Clock,
+    href: '/timeclock' as Route,
+    group: 'overview',
+    permission: 'timeclock:use',
   },
   {
     key: 'executive',

@@ -29,6 +29,22 @@ export interface AccessScope {
   isManager: boolean;
 }
 
+interface MemberRow {
+  role: Role;
+  departmentId: string | null;
+  ownerships: { app: AppKey; role: Role }[];
+}
+
+/**
+ * How long a person's role and department are remembered.
+ *
+ * Every request asks several times (the guard, then the service), and the
+ * answer almost never changes. A few seconds removes the repeated queries; the
+ * writes that do change it call `invalidate()` so a demotion is felt at once.
+ */
+const CACHE_TTL_MS = 3000;
+const CACHE_MAX_ENTRIES = 2000;
+
 /**
  * Works out what one person may do, optionally within one application.
  *
@@ -45,23 +61,53 @@ export interface AccessScope {
  */
 @Injectable()
 export class PermissionsService {
+  private readonly cache = new Map<
+    string,
+    { at: number; member: MemberRow | null }
+  >();
+
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Forgets every remembered role. Call it after a role or department changes. */
+  invalidate(): void {
+    this.cache.clear();
+  }
+
+  private async member(
+    organizationId: string,
+    userId: string,
+  ): Promise<MemberRow | null> {
+    const key = `${organizationId}:${userId}`;
+    const hit = this.cache.get(key);
+
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+      return hit.member;
+    }
+
+    const member = await this.prisma.teamMember.findFirst({
+      where: { userId, organizationId },
+      select: {
+        role: true,
+        departmentId: true,
+        ownerships: { select: { app: true, role: true } },
+      },
+    });
+
+    if (this.cache.size >= CACHE_MAX_ENTRIES) {
+      this.cache.clear();
+    }
+
+    this.cache.set(key, { at: Date.now(), member });
+
+    return member;
+  }
 
   async resolve(
     organizationId: string,
     userId: string,
     app?: AppKey | null,
   ): Promise<EffectivePermissions> {
-    const member = await this.prisma.teamMember.findFirst({
-      where: { userId, organizationId },
-      select: {
-        role: true,
-        departmentId: true,
-        ownerships: app
-          ? { where: { app }, select: { role: true }, take: 1 }
-          : false,
-      },
-    });
+    const member = await this.member(organizationId, userId);
 
     if (!member) {
       return {
@@ -72,7 +118,9 @@ export class PermissionsService {
       };
     }
 
-    const ownership = app ? member.ownerships?.[0] : undefined;
+    const ownership = app
+      ? member.ownerships.find((o) => o.app === app)
+      : undefined;
     const role = ownership?.role ?? member.role;
 
     return {
@@ -85,10 +133,7 @@ export class PermissionsService {
 
   /** The slice of the company this person may see. */
   async scope(organizationId: string, userId: string): Promise<AccessScope> {
-    const member = await this.prisma.teamMember.findFirst({
-      where: { userId, organizationId },
-      select: { role: true, departmentId: true },
-    });
+    const member = await this.member(organizationId, userId);
 
     if (!member) {
       return {
@@ -128,10 +173,7 @@ export class PermissionsService {
     organizationId: string,
     userId: string,
   ): Promise<readonly Permission[]> {
-    const member = await this.prisma.teamMember.findFirst({
-      where: { userId, organizationId },
-      select: { role: true, ownerships: { select: { role: true } } },
-    });
+    const member = await this.member(organizationId, userId);
 
     if (!member) {
       return [];
@@ -158,14 +200,5 @@ export class PermissionsService {
     const effective = await this.resolve(organizationId, userId, app);
 
     return effective.permissions.includes(permission);
-  }
-
-  /** Is this organization's roster still empty? See `PermissionsGuard`. */
-  async isBootstrapping(organizationId: string): Promise<boolean> {
-    const members = await this.prisma.teamMember.count({
-      where: { organizationId },
-    });
-
-    return members === 0;
   }
 }

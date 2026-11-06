@@ -34,6 +34,8 @@ export const PERMISSIONS = [
   'projects:manage',
   'executive:read',
   'productivity:read',
+  'timeclock:use',
+  'timeclock:read',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -49,6 +51,8 @@ const VIEWER: Permission[] = [
   'calendar:read',
   'orgchart:read',
   'departments:read',
+  // Everybody clocks in and out, readers included: attendance is not editing.
+  'timeclock:use',
 ];
 
 /** Do the work, without reshaping the organisation or destroying its record. */
@@ -77,6 +81,8 @@ const MANAGER: Permission[] = [
   'team:manage',
   'projects:manage',
   'productivity:read',
+  // Sees who is present and the hours of their own department.
+  'timeclock:read',
 ];
 
 /**

@@ -61,6 +61,7 @@ async function main() {
   // and no FK trips. `onDelete: Cascade` would handle most, but being
   // explicit documents what the script is doing.
   await prisma.$transaction([
+    prisma.timeEntry.deleteMany({ where: { organizationId: org.id } }),
     prisma.notification.deleteMany({ where: { organizationId: org.id } }),
     prisma.activityEvent.deleteMany({ where: { organizationId: org.id } }),
     prisma.dailyReportIssue.deleteMany({}),

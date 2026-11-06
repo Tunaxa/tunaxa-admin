@@ -92,9 +92,7 @@ export class PermissionsGuard implements CanActivate {
    * record being acted on. Route-level permissions are the floor; the
    * per-application rule is enforced where the record is loaded.
    *
-   * A user with no membership has no permissions — registering creates an
-   * account, and a place on the team is granted separately. The one exception
-   * is an organization whose roster is empty.
+   * A user with no membership has no permissions.
    */
   private async permissionsOf(
     organizationId: string,
@@ -110,12 +108,9 @@ export class PermissionsGuard implements CanActivate {
       return anywhere;
     }
 
-    // Without this the feature locks the door and posts the key inside:
-    // adding the first member needs `team:manage`, which needs a membership,
-    // which nobody has. While a tenant has no members at all, any account in
-    // it may build the roster — and nothing else.
-    return (await this.permissions.isBootstrapping(organizationId))
-      ? ['team:manage']
-      : [];
+    // No membership, no permissions. The first account of a company (the CEO)
+    // is created by `prisma/clean.ts`, not by letting any signed-in account of
+    // an empty tenant promote itself.
+    return [];
   }
 }

@@ -124,7 +124,7 @@ export class ProjectsService {
     id: string,
     dto: UpdateProjectDto,
   ): Promise<ProjectSummary> {
-    await this.assertCanManage(organizationId, actorId, id);
+    await this.assertCanAccess(organizationId, actorId, id);
 
     const data: Prisma.ProjectUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim();
@@ -146,7 +146,7 @@ export class ProjectsService {
     actorId: string,
     id: string,
   ): Promise<void> {
-    await this.assertCanManage(organizationId, actorId, id);
+    await this.assertCanAccess(organizationId, actorId, id);
 
     await this.prisma.project.delete({ where: { id } });
   }
@@ -157,7 +157,7 @@ export class ProjectsService {
     actorId: string,
     projectId: string,
   ): Promise<ActivityEvent[]> {
-    await this.assertCanManage(organizationId, actorId, projectId, false);
+    await this.assertCanAccess(organizationId, actorId, projectId);
 
     return this.activity.listForProject(organizationId, projectId);
   }
@@ -168,11 +168,10 @@ export class ProjectsService {
    * Reported as missing rather than forbidden, so the response does not confirm
    * that a project in another department (or tenant) exists.
    */
-  private async assertCanManage(
+  private async assertCanAccess(
     organizationId: string,
     actorId: string,
     id: string,
-    _write = true,
   ): Promise<void> {
     const scope = await this.permissions.scope(organizationId, actorId);
     const project = await this.prisma.project.findFirst({

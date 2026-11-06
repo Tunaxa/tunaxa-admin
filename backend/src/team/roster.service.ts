@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { AppKey, Role } from '@prisma/client';
+import { Prisma, type AppKey, type Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import {
@@ -196,11 +196,15 @@ export class RosterService {
       );
     }
 
-    return this.prisma.teamMember.update({
+    const updated = await this.prisma.teamMember.update({
       where: { id },
       data: { role: dto.role },
       select: RosterService.SELECT,
     });
+
+    this.permissions.invalidate();
+
+    return updated;
   }
 
   async remove(
@@ -216,9 +220,18 @@ export class RosterService {
     // membership alone goes and the sign-in no longer resolves to anything.
     try {
       await this.prisma.user.delete({ where: { id: member.userId } });
-    } catch {
+    } catch (cause: unknown) {
+      if (!(
+        cause instanceof Prisma.PrismaClientKnownRequestError &&
+        cause.code === 'P2003'
+      )) {
+        throw cause;
+      }
+
       await this.prisma.teamMember.delete({ where: { id } });
     }
+
+    this.permissions.invalidate();
   }
 
   /**

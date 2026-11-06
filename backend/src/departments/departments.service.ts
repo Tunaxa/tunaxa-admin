@@ -7,7 +7,10 @@ import {
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-import type { AccessScope } from '../auth/permissions.service.js';
+import {
+  type AccessScope,
+  PermissionsService,
+} from '../auth/permissions.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -63,6 +66,7 @@ export class DepartmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   /** The CEO sees every department; anyone else sees only their own. */
@@ -251,6 +255,8 @@ export class DepartmentsService {
       return userId;
     });
 
+    this.permissions.invalidate();
+
     void this.notifications.push({
       organizationId,
       recipientId: newManagerId,
@@ -264,26 +270,56 @@ export class DepartmentsService {
     return this.findView(organizationId, id);
   }
 
-  /** A department can only go once it is empty. */
+  /**
+   * A department can go once nobody but its manager is left in it and it has
+   * no projects.
+   *
+   * The manager is not counted: they were put there to run the department, so
+   * requiring the seat to be emptied first could never be satisfied (a manager
+   * is replaced, never removed from the roster). Their account is kept but
+   * loses its department and its manager role, so it sees nothing until the CEO
+   * places it somewhere else or removes it.
+   */
   async remove(organizationId: string, id: string): Promise<void> {
-    await this.findInTenant(organizationId, id);
+    const department = await this.findInTenant(organizationId, id);
 
-    const [members, projects] = await Promise.all([
+    const [others, projects] = await Promise.all([
       this.prisma.teamMember.count({
-        where: { organizationId, departmentId: id },
+        where: {
+          organizationId,
+          departmentId: id,
+          ...(department.managerId
+            ? { userId: { not: department.managerId } }
+            : {}),
+        },
       }),
       this.prisma.project.count({
         where: { organizationId, departmentId: id },
       }),
     ]);
 
-    if (members > 0 || projects > 0) {
+    if (others > 0 || projects > 0) {
       throw new ConflictException(
-        `Le département contient encore ${members} membre(s) et ${projects} projet(s)`,
+        `Le département contient encore ${others} membre(s) et ${projects} projet(s)`,
       );
     }
 
-    await this.prisma.department.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      if (department.managerId) {
+        await tx.teamMember.updateMany({
+          where: {
+            organizationId,
+            userId: department.managerId,
+            departmentId: id,
+          },
+          data: { role: 'viewer', departmentId: null },
+        });
+      }
+
+      await tx.department.delete({ where: { id } });
+    });
+
+    this.permissions.invalidate();
   }
 
   private async createManagerAccount(
