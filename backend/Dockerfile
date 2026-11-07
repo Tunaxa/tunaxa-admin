@@ -52,6 +52,8 @@ RUN apk add --no-cache tini
 # one escaped process away from being root on the host.
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node prisma ./prisma
+COPY --chown=node:node prisma.config.ts ./
 COPY --chown=node:node package.json ./
 
 USER node
