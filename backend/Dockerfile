@@ -46,7 +46,7 @@ ENV NODE_ENV=production
 
 # Signals: Node as PID 1 does not reap children or forward SIGTERM, so a
 # container stop would wait out the grace period instead of shutting down.
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini && npm install -g prisma@7.10.0
 
 # `node` exists in the official image. Running as root inside a container is
 # one escaped process away from being root on the host.
