@@ -51,10 +51,14 @@ RUN apk add --no-cache tini && npm install -g prisma@7.10.0
 # `node` exists in the official image. Running as root inside a container is
 # one escaped process away from being root on the host.
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/node_modules/prisma ./node_modules/prisma
+COPY --from=build --chown=node:node /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --chown=node:node prisma ./prisma
 COPY --chown=node:node prisma.config.ts ./
 COPY --chown=node:node package.json ./
+
+ENV NODE_PATH=/app/node_modules:/usr/local/lib/node_modules
 
 USER node
 EXPOSE 4000
