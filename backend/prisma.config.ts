@@ -1,5 +1,9 @@
-import 'dotenv/config';
-
+try {
+  await import('dotenv/config');
+} catch {
+  // In production, environment variables are already set by Docker
+  console.warn('dotenv/config not found, skipping dotenv import');
+}
 import { defineConfig, env } from 'prisma/config';
 
 /**
