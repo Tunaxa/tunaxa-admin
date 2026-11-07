@@ -84,7 +84,7 @@ jobs:
             docker compose up -d postgres mongo redis
 
             echo "Running Prisma migrations..."
-            docker compose run --rm backend npm run db:deploy
+            docker compose run --rm --no-deps backend npm run db:deploy
 
             echo "Recreating app containers..."
             docker compose up -d --no-deps backend frontend
