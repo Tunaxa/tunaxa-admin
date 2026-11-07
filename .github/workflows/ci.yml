@@ -148,7 +148,7 @@ jobs:
         with:
           context: backend
           load: true
-          tags: axa-admin-backend:ci
+          tags: tunaxa-admin-backend:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -168,7 +168,7 @@ jobs:
       - name: Smoke-test the backend image
         if: needs.detect.outputs.backend == 'true'
         run: |
-          docker run -d --name smoke -p 4000:4000             -e DATABASE_URL='postgresql://ci:ci@127.0.0.1:5432/ci?schema=public'             -e MONGODB_URL='mongodb://127.0.0.1:27017/ci'             -e JWT_SECRET=ci             axa-admin-backend:ci
+          docker run -d --name smoke -p 4000:4000             -e DATABASE_URL='postgresql://ci:ci@127.0.0.1:5432/ci?schema=public'             -e MONGODB_URL='mongodb://127.0.0.1:27017/ci'             -e JWT_SECRET=ci             tunaxa-admin-backend:ci
           # It cannot reach a database, so it is expected to fail on connect —
           # what is being checked is that Node resolves every module and gets
           # as far as bootstrapping Nest.

@@ -80,10 +80,11 @@ jobs:
             echo "Pulling new production images..."
             docker compose pull backend frontend
 
+            echo "Starting databases if not already running..."
+            docker compose up -d postgres mongo redis
+
             echo "Running Prisma migrations..."
-            docker compose run --rm --no-deps \
-              -e DATABASE_URL="$(grep '^POSTGRES_USER' .env | cut -d= -f2):$(grep '^POSTGRES_PASSWORD' .env | cut -d= -f2)@postgres:5432/$(grep '^POSTGRES_DB' .env | cut -d= -f2)?schema=public" \
-              backend npm run db:deploy
+            docker compose run --rm backend npm run db:deploy
 
             echo "Recreating app containers..."
             docker compose up -d --no-deps backend frontend
