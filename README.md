@@ -85,8 +85,8 @@ Both projects build to a container image. `docker compose` still only runs the
 databases — these are for deploying, not for local development.
 
 ```bash
-docker build -t axa-admin-backend backend
-docker build -t axa-admin-frontend --build-arg NEXT_PUBLIC_API_URL=https://api.example frontend
+docker build -t tunaxa-admin-backend backend
+docker build -t tunaxa-admin-frontend --build-arg NEXT_PUBLIC_API_URL=https://api.example frontend
 ```
 
 ### Measured

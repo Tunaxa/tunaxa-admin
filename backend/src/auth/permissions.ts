@@ -19,12 +19,12 @@ export const PERMISSIONS = [
   'team:manage',
   'reports:read',
   'reports:write',
-  'calendar:read',
-  'calendar:write',
-  'calendar:delete',
   'orgchart:read',
   'orgchart:write',
   'orgchart:delete',
+  'calendar:read',
+  'calendar:write',
+  'calendar:delete',
   'requests:read',
   'requests:write',
   'requests:decide',
@@ -48,11 +48,12 @@ const VIEWER: Permission[] = [
   'docs:read',
   'team:read',
   'reports:read',
-  'calendar:read',
   'orgchart:read',
+  'calendar:read',
   'departments:read',
   // Everybody clocks in and out, readers included: attendance is not editing.
   'timeclock:use',
+  'requests:read',
 ];
 
 /** Do the work, without reshaping the organisation or destroying its record. */
@@ -61,8 +62,9 @@ const MEMBER: Permission[] = [
   'work:write',
   'docs:write',
   'reports:write',
-  'calendar:write',
   'orgchart:write',
+  'calendar:write',
+  'requests:write',
 ];
 
 /**
@@ -83,6 +85,7 @@ const MANAGER: Permission[] = [
   'productivity:read',
   // Sees who is present and the hours of their own department.
   'timeclock:read',
+  'requests:decide',
 ];
 
 /**
@@ -99,7 +102,7 @@ const MANAGER: Permission[] = [
  */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   [Role.owner]: EVERY_PERMISSION,
-  [Role.pm_lead]: MANAGER,
+  [Role.pm_lead]: EVERY_PERMISSION,
   [Role.dev_team_leader]: MANAGER,
   [Role.developer]: MEMBER,
   [Role.designer]: MEMBER,

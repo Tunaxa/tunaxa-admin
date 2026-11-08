@@ -40,6 +40,7 @@ import { WorkModule } from './work/work.module.js';
     TimeclockModule,
     GithubModule,
     RequestsModule,
+    OrgChartModule,
     CalendarModule,
     OrgChartModule,
     AppUsageModule,
