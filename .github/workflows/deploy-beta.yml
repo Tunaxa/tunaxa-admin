@@ -47,7 +47,7 @@ jobs:
           context: frontend
           push: true
           build-args: |
-            NEXT_PUBLIC_API_URL=https://api-beta.tunaxa.com
+            NEXT_PUBLIC_API_URL=https://api-beta-admin.tunaxa.com
           tags: |
             ghcr.io/tunaxa/tunaxa-admin-frontend:beta
             ghcr.io/tunaxa/tunaxa-admin-frontend:beta-${{ github.sha }}
