@@ -52,6 +52,7 @@ model Organization {
   orgChart           OrgChart?
   docsPages          DocsPage[]
   notifications      Notification[]
+  timeEntries        TimeEntry[]
   departments        Department[]
 
   @@map("organizations")
@@ -128,6 +129,7 @@ model User {
   notifications   Notification[]   @relation("NotificationRecipient")
   sentNotifications Notification[] @relation("NotificationActor")
   managedDepartments Department[]  @relation("DepartmentManager")
+  timeEntries        TimeEntry[]
 
   // Unique per tenant rather than globally, so the same address can exist in
   // two organizations once multi-tenancy is switched on.
@@ -779,8 +781,35 @@ model Department {
   members      TeamMember[]
   projects     Project[]
   issues       Issue[]
+  timeEntries  TimeEntry[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
   @@map("departments")
+}
+
+/// One stretch of presence: a person clocks in, later clocks out.
+///
+/// A person may have at most one open entry (`clockOutAt` null) at a time. The
+/// database enforces it with a partial unique index that Prisma cannot express,
+/// so it lives in the migration SQL rather than here.
+model TimeEntry {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  userId         String    @db.Uuid
+  /// The person's department when they clocked in, so a later move does not
+  /// rewrite the department's history.
+  departmentId   String?   @db.Uuid
+  clockInAt      DateTime  @default(now())
+  clockOutAt     DateTime?
+  note           String?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, userId, clockInAt])
+  @@index([organizationId, departmentId, clockInAt])
+  @@map("time_entries")
 }
