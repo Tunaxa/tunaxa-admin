@@ -16,10 +16,11 @@ import { navItemFor } from './nav-items';
 import { TopBar } from './top-bar';
 
 /** Routes rendered standalone, without the authenticated shell. */
-const CHROMELESS_ROUTES = new Set<string>(['/login']);
+const CHROMELESS_ROUTES = new Set<string>(['/login', '/welcome']);
 
 /**
- * Sidebar + top bar, wrapping the page content. The login screen renders bare.
+ * Sidebar + top bar, wrapping the page content. The login screen and the public
+ * landing page render bare.
  *
  * Everything that holds a person's data (access, issues) is created inside the
  * authenticated branch, so it is rebuilt at every sign-in and dropped at every
@@ -35,7 +36,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     try {
       if (!window.localStorage.getItem(AUTH_TOKEN_KEY)) {
-        router.replace('/login');
+        // A visitor opening the site root sees the landing page; any other
+        // protected page sends them to sign in.
+        router.replace(pathname === '/' ? '/welcome' : '/login');
       }
     } catch {
       // storage blocked: the first API call will bounce to the login.
