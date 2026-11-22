@@ -22,7 +22,6 @@ export interface AuthResult {
   };
 }
 
-
 /** Wrong passwords tolerated per ip and email before sign-in is paused. */
 const MAX_FAILURES = 5;
 const LOCK_WINDOW_MS = 15 * 60 * 1000;
