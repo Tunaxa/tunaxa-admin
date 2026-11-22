@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Ip,
   Post,
   Query,
   Req,
@@ -31,8 +32,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() dto: LoginDto): Promise<AuthResult> {
-    return this.auth.login(dto);
+  login(@Body() dto: LoginDto, @Ip() ip: string): Promise<AuthResult> {
+    return this.auth.login(dto, ip);
   }
 
   /**

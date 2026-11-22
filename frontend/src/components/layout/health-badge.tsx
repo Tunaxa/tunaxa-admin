@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { cn } from 'cn';
 
-import { apiFetch } from '@/lib/api';
+import { API_URL } from '@/lib/api';
 
 type Health = 'ok' | 'checking' | 'down';
 
@@ -16,8 +16,10 @@ export function HealthBadge() {
     let cancelled = false;
     async function ping() {
       try {
-        await apiFetch<unknown>('/');
-        if (!cancelled) setStatus('ok');
+        // The root answers plain text, so only the status code matters.
+        const response = await fetch(`${API_URL}/`);
+
+        if (!cancelled) setStatus(response.ok ? 'ok' : 'down');
       } catch {
         if (!cancelled) setStatus('down');
       }

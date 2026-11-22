@@ -59,7 +59,7 @@ export class IssuesService {
 
     // Which department the work belongs to: the project's, else the CEO's
     // explicit choice, else the creator's own.
-    const departmentId =
+    let departmentId =
       projectDepartmentId ??
       (scope.seeAll ? (dto.departmentId ?? null) : scope.departmentId);
 
@@ -84,6 +84,12 @@ export class IssuesService {
       );
     }
 
+    // An issue always belongs to a department, or nobody but the CEO could ever
+    // see it: when the CEO assigns one without choosing, it follows the assignee.
+    if (!departmentId && assigneeId) {
+      departmentId = await this.departmentOf(organizationId, assigneeId);
+    }
+
     if (assigneeId) {
       await this.assertAssigneeInDepartment(
         organizationId,
@@ -96,7 +102,7 @@ export class IssuesService {
     // bumped with an atomic increment rather than a read-then-write: the row
     // lock that takes is what stops two simultaneous creates both being handed
     // AXA-124.
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const organization = await tx.organization.update({
         where: { id: organizationId },
         data: { issueCounter: { increment: 1 } },
@@ -121,6 +127,22 @@ export class IssuesService {
         },
       });
     });
+
+    // Whoever is handed the task hears about it straight away, not only when it
+    // is reassigned later. Nobody needs a notification for their own action.
+    if (assigneeId && assigneeId !== actorId) {
+      await this.notifications.push({
+        organizationId,
+        recipientId: assigneeId,
+        actorId,
+        type: 'task_assigned',
+        title: `Nouvelle tâche assignée : ${created.title}`,
+        body: created.key,
+        link: `/?issue=${created.id}`,
+      });
+    }
+
+    return created;
   }
 
   /**
@@ -294,6 +316,15 @@ export class IssuesService {
     }
 
     var data: Prisma.IssueUncheckedUpdateInput = { ...dto };
+
+    // Same rule on update: handing a department-less issue to somebody pulls it
+    // into their department so they can see it.
+    if (dto.assigneeId && !issue.departmentId) {
+      data.departmentId = await this.departmentOf(
+        organizationId,
+        dto.assigneeId,
+      );
+    }
 
     // `closedAt` is maintained here rather than by the caller, so the board's
     // drag-and-drop and the detail panel record it without knowing about it.
@@ -593,6 +624,19 @@ export class IssuesService {
     }
 
     throw new NotFoundException('Issue not found');
+  }
+
+  /** The department a person works in, or null for the CEO. */
+  private async departmentOf(
+    organizationId: string,
+    userId: string,
+  ): Promise<string | null> {
+    const member = await this.prisma.teamMember.findFirst({
+      where: { organizationId, userId },
+      select: { departmentId: true },
+    });
+
+    return member?.departmentId ?? null;
   }
 
   /** The assignee has to work in the department the issue belongs to. */

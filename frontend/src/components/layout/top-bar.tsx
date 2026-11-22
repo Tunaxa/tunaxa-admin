@@ -6,6 +6,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 
+import { ClockButton } from './clock-button';
 import { CommandPalette } from './command-palette';
 import { HealthBadge } from './health-badge';
 import { NAV_ITEMS } from './nav-items';
@@ -89,6 +90,7 @@ export function TopBar() {
           <Search className="size-4" />
         </Button>
         <HealthBadge />
+        <ClockButton />
         <NotificationsBell />
         <ThemeToggle />
         <UserMenu onOpenShortcuts={() => setShortcutsOpen(true)} />
